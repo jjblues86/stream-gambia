@@ -6,7 +6,6 @@ services:
     image: postgres:15-alpine
     container_name: sg-postgres
     environment:
-      POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
       POSTGRES_DB: streamgambia_db
     ports:

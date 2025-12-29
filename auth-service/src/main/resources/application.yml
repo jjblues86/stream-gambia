@@ -1,0 +1,20 @@
+server:
+  port: 8080 # Gateway will be 8080, so we move this to 8081
+
+spring:
+  application:
+    name: auth-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/streamgambia_db
+    username: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update # DEV ONLY: This automatically creates tables based on your Java code.
+    show-sql: true # DEV ONLY: Prints SQL to console so you can see what Hibernate is doing.
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect

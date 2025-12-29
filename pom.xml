@@ -10,6 +10,7 @@
     <description>Netflix-like VOD Platform for West Africa</description>
 
     <modules>
+        <module>auth-service</module>
     </modules>
 
     <properties>
