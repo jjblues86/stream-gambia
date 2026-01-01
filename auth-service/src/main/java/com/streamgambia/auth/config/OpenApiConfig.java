@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
                 contact = @Contact(name = "StreamGambia Dev", email = "dev@streamgambia.com")
         ),
         servers = {
-                @Server(url = "http://localhost:8080", description = "Local Environment")
+                @Server(url = "http://localhost:8081", description = "Local Environment")
         }
 )
 public class OpenApiConfig {

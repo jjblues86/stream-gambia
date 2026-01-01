@@ -1,5 +1,5 @@
 server:
-  port: 8080 # Gateway will be 8080, so we move this to 8081
+  port: 8081 # Gateway will be 8080, so we move this to 8081
 
 spring:
   application:

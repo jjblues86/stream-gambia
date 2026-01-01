@@ -27,7 +27,7 @@ public class AuthService {
             throw new IllegalArgumentException("Phone number already exists!");
         }
 
-        // 2. Create User Entiity
+        // 2. Create User Entity
         User user = User.builder()
                 .email(request.getEmail())
                 .phoneNumber(request.getPhoneNumber())
