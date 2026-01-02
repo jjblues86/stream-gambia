@@ -7,23 +7,32 @@ spring:
 
   cloud:
     gateway:
+      discovery:
+        locator:
+          enabled: true # Automatically create routes based on service ID (optional but cool)
+          lower-case-service-id: true
       routes:
-        # Route 1: Auth Service (Public - No Filter needed)
+        # Route 1: Auth Service (Dynamic)
         - id: auth-service
-          uri: http://localhost:8081
+          uri: lb://AUTH-SERVICE  # <--- MAGIC CHANGE: Use the Service Name!
           predicates:
             - Path=/api/v1/auth/**
 
-        # Route 2: Video Service (PROTECTED - Add Filter)
+        # Route 2: Video Service (Dynamic)
         - id: video-service
-          uri: http://localhost:8082
+          uri: lb://VIDEO-SERVICE # <--- MAGIC CHANGE
           predicates:
             - Path=/api/v1/videos/**
           filters:
-            - AuthenticationFilter # <--- The Bouncer is now watching this door!
+            - AuthenticationFilter
 
-        # Route 3: Swagger (Public)
+        # Route 3: Swagger (Dynamic)
         - id: video-swagger
-          uri: http://localhost:8082
+          uri: lb://VIDEO-SERVICE
           predicates:
             - Path=/v3/api-docs/**, /swagger-ui/**, /swagger-ui.html
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
