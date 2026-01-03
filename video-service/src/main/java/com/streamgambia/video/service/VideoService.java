@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -34,5 +35,9 @@ public class VideoService {
     public Video getVideoMetadata(String id) {
         return videoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Video not found"));
+    }
+
+    public List<Video> getAllVideos() {
+        return videoRepository.findAll();
     }
 }

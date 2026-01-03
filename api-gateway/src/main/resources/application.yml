@@ -11,6 +11,18 @@ spring:
         locator:
           enabled: true # Automatically create routes based on service ID (optional but cool)
           lower-case-service-id: true
+
+      globalcors:
+        cors-configurations:
+          '[/**]': # Apply to ALL routes
+            allowedOrigins: "http://localhost:3000" # Only allow OUR frontend
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+
       routes:
         # Route 1: Auth Service (Dynamic)
         - id: auth-service

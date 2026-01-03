@@ -25,32 +25,42 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Override
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
+            if (validator.isSecured.test(exchange.getRequest())) {
 
-            // 1. Capture the request (Explicit type ensures we match RouteValidator)
-            ServerHttpRequest request = exchange.getRequest();
+                String token = null;
 
-            // 2. Check logic (No casting needed now)
-            if (validator.isSecured.test(request)) {
-
-                // Check Header presence
-                if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                    exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                    return exchange.getResponse().setComplete();
+                // 1. Check Header first
+                if (exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+                    String authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
+                    if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                        token = authHeader.substring(7);
+                    }
                 }
 
-                // Get Token
-                String authHeader = request.getHeaders().getOrEmpty(HttpHeaders.AUTHORIZATION).get(0);
-                if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                    authHeader = authHeader.substring(7);
+                // 2. If no header, Check Query Param (?token=...)
+                if (token == null && exchange.getRequest().getQueryParams().containsKey("token")) {
+                    token = exchange.getRequest().getQueryParams().getFirst("token");
                 }
 
-                // Validate
+                if (token == null) {
+                    throw new RuntimeException("Missing Authorization Header or Query Param");
+                }
+
                 try {
-                    jwtUtil.validateToken(authHeader);
+                    // 3. Validate Token
+                    jwtUtil.validateToken(token);
+
+                    // 4. CRITICAL FIX: Mutate the request to add the Header
+                    // This ensures the Video Service sees "Authorization: Bearer <token>"
+                    ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                            .build();
+
+                    return chain.filter(exchange.mutate().request(modifiedRequest).build());
+
                 } catch (Exception e) {
-                    System.out.println("Invalid Access: " + e.getMessage());
-                    exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                    return exchange.getResponse().setComplete();
+                    System.out.println("Invalid Token Access");
+                    throw new RuntimeException("Unauthorized access to application");
                 }
             }
             return chain.filter(exchange);
