@@ -4,47 +4,28 @@ server:
 spring:
   application:
     name: api-gateway
-
   cloud:
     gateway:
-      discovery:
-        locator:
-          enabled: true # Automatically create routes based on service ID (optional but cool)
-          lower-case-service-id: true
-
-      globalcors:
+      globalcors: # <--- New Block starts here
         cors-configurations:
-          '[/**]': # Apply to ALL routes
-            allowedOrigins: "http://localhost:3000" # Only allow OUR frontend
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-
+          '[/**]':
+            allowedOrigins: "http://localhost:3000"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
       routes:
-        # Route 1: Auth Service (Dynamic)
         - id: auth-service
-          uri: lb://AUTH-SERVICE  # <--- MAGIC CHANGE: Use the Service Name!
+          uri: lb://AUTH-SERVICE
           predicates:
             - Path=/api/v1/auth/**
-
-        # Route 2: Video Service (Dynamic)
         - id: video-service
-          uri: lb://VIDEO-SERVICE # <--- MAGIC CHANGE
+          uri: lb://VIDEO-SERVICE
           predicates:
             - Path=/api/v1/videos/**
           filters:
             - AuthenticationFilter
 
-        # Route 3: Swagger (Dynamic)
-        - id: video-swagger
-          uri: lb://VIDEO-SERVICE
-          predicates:
-            - Path=/v3/api-docs/**, /swagger-ui/**, /swagger-ui.html
-
 eureka:
   client:
-    service-url:
+    serviceUrl:
       defaultZone: http://localhost:8761/eureka/
