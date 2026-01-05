@@ -22,8 +22,6 @@ spring:
           uri: lb://VIDEO-SERVICE
           predicates:
             - Path=/api/v1/videos/**
-          filters:
-            - AuthenticationFilter
 
 eureka:
   client:
