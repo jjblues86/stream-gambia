@@ -1,0 +1,59 @@
+name: StreamGambia CI Pipeline
+
+# 1. THE TRIGGER: When does this run?
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  # ==========================================
+  # JOB 1: BUILD BACKEND (Java Microservices)
+  # ==========================================
+  build-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build with Maven
+        # This runs the same command you run locally
+        # We skip tests for now to ensure the build passes first
+        run: mvn clean package -DskipTests
+
+  # ==========================================
+  # JOB 2: BUILD FRONTEND (Next.js)
+  # ==========================================
+  build-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build Next.js App
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          # We need this to prevent build errors if the backend isn't running during build
+          NEXT_PUBLIC_API_URL: http://localhost:8080
