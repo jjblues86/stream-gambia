@@ -6,6 +6,7 @@ import com.streamgambia.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -49,5 +50,17 @@ public class VideoController {
     @GetMapping
     public List<Video> getAllVideos() {
         return videoService.getAllVideos();
+    }
+
+    @PostMapping("/upload")
+    @ResponseStatus(HttpStatus.CREATED)
+    public String uploadFile(@RequestParam("file") MultipartFile file) {
+        try {
+            videoService.uploadVideo(file);
+            return "Video upload started! Transcoding in progress...";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error uploading video: " + e.getMessage();
+        }
     }
 }

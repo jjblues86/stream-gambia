@@ -58,7 +58,7 @@ services:
 
   # 1. THE PHONEBOOK (Service Registry)
   service-registry:
-    build: ./service-registry
+    image: jeromejoof/sg-registry:latest
     container_name: sg-registry
     ports:
       - "8761:8761"
@@ -68,7 +68,7 @@ services:
   # 2. THE SECURITY GUARD (Auth Service)
   # ... inside services:
   auth-service:
-    build: ./auth-service
+    image: jeromejoof/sg-auth:latest
     container_name: sg-auth
     ports:
       - "8081:8081"
@@ -89,6 +89,7 @@ services:
   # 3. THE CONTENT (Video Service)
   video-service:
     build: ./video-service
+#    image: jeromejoof/sg-video:latest
     container_name: sg-video
     ports:
       - "8082:8082"
@@ -113,6 +114,7 @@ services:
   # 4. THE FRONT DOOR (API Gateway)
   api-gateway:
     build: ./api-gateway
+#    image: jeromejoof/sg-gateway:latest
     container_name: sg-gateway
     ports:
       - "8080:8080"
@@ -128,6 +130,7 @@ services:
     # 5. THE EXPERIENCE (Frontend)
   frontend:
     build: ./frontend
+#    image: jeromejoof/sg-frontend:latest
     container_name: sg-frontend
     ports:
       - "3000:3000"
