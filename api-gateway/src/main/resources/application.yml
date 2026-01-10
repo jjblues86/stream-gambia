@@ -6,24 +6,31 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      globalcors: # <--- New Block starts here
+      # 1. THE ROUTING MAP
+      routes:
+        - id: auth-service
+          uri: http://auth-service:8081
+          predicates:
+            - Path=/auth/**
+
+        # This is the one causing your 404. It MUST be here.
+        - id: video-service
+          uri: http://video-service:8082
+          predicates:
+            - Path=/videos/**
+
+      # 2. BROWSER ACCESS (CORS)
+      globalcors:
         cors-configurations:
           '[/**]':
             allowedOrigins: "http://localhost:3000"
-            allowedMethods: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
             allowedHeaders: "*"
-            allowCredentials: true
-      routes:
-        - id: auth-service
-          uri: lb://AUTH-SERVICE
-          predicates:
-            - Path=/api/v1/auth/**
-        - id: video-service
-          uri: lb://VIDEO-SERVICE
-          predicates:
-            - Path=/api/v1/videos/**
-
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://service-registry:8761/eureka/

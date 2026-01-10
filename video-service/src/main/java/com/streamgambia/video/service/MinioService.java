@@ -55,31 +55,21 @@ public class MinioService {
 
     /**
      * Uploads a file from the local disk to MinIO
-     * @param objectKey The path inside the bucket (e.g., "videos/123/index.m3u8")
+     * @param key The path inside the bucket (e.g., "videos/123/index.m3u8")
      * @param file The local file to upload
      */
-    public void uploadFile(String objectKey, File file) {
-        try {
-            // Determine Content Type (MIME)
-            String contentType = "application/octet-stream";
-            if (file.getName().endsWith(".m3u8")) {
-                contentType = "application/vnd.apple.mpegurl";
-            } else if (file.getName().endsWith(".ts")) {
-                contentType = "video/MP2T";
-            }
-
-            //Upload the file
-            minioClient.uploadObject(
-                    UploadObjectArgs.builder()
+    public void uploadFile(String key, java.io.File file) {
+        try (java.io.FileInputStream inputStream = new java.io.FileInputStream(file)) {
+            minioClient.putObject(
+                    io.minio.PutObjectArgs.builder()
                             .bucket(bucketName)
-                            .object(objectKey)
-                            .filename(file.getAbsolutePath())
-                            .contentType(contentType)
+                            .object(key)
+                            .stream(inputStream, file.length(), -1)
+                            .contentType("application/octet-stream")
                             .build()
             );
-            System.out.println("Uploaded '" + file.getName() + "' to '" + objectKey + "'");
         } catch (Exception e) {
-            throw new RuntimeException("Error uploading file '" + file.getName() + "' to MinIO", e);
+            throw new RuntimeException("Failed to upload file to MinIO", e);
         }
     }
 }

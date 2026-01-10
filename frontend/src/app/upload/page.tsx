@@ -25,13 +25,14 @@ export default function UploadPage() {
 
     try {
       // Use the environment variable we set in Docker
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+      const apiUrl = "http://localhost:8082";
 
-      const res = await fetch(`${apiUrl}/videos/upload`, {
-        method: "POST",
-        body: formData,
-      });
-
+// Force it to 8082
+const res = await fetch("http://localhost:8082/videos/upload", {
+    method: 'POST',
+    body: formData,
+    // ... rest of your code
+});
       if (!res.ok) {
         throw new Error("Upload failed");
       }

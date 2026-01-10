@@ -1,23 +1,23 @@
 package com.streamgambia.auth.controller;
 
-import com.streamgambia.auth.dto.AuthResponse;
 import com.streamgambia.auth.dto.LoginRequest;
 import com.streamgambia.auth.dto.RegisterRequest;
 import com.streamgambia.auth.service.AuthService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@RequiredArgsConstructor
+// @CrossOrigin is removed because we handle it in SecurityConfig now
 public class AuthController {
 
     private final AuthService authService;
+
+    // --- THIS WAS MISSING ---
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
+    // ------------------------
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
@@ -25,7 +25,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<String> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 }

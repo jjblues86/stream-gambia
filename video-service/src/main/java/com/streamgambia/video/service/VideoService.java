@@ -2,78 +2,81 @@ package com.streamgambia.video.service;
 
 import com.streamgambia.video.entity.Video;
 import com.streamgambia.video.repository.VideoRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.File;
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class VideoService {
 
-    private final FileService fileService;
-    private final VideoRepository videoRepository;
+    private final MinioService minioService; // Make sure this matches your file name (FileService vs MinioService)
     private final VideoTranscodingService videoTranscodingService;
-    private final MinioService minioService;
+    private final VideoRepository videoRepository; // <--- NEW: Database connection
 
-    public Video saveVideo(MultipartFile file, String title, String description, String director, String genre) {
-        String videoFileName = fileService.uploadFile(file);
-
-        Video video = Video.builder()
-                .title(title)
-                .description(description)
-                .director(director)
-                .genre(genre)
-                .videoUrl(videoFileName)
-                .contentType(file.getContentType())
-                .uploadDate(LocalDateTime.now())
-                .build();
-
-        return videoRepository.save(video);
-    }
-
-    public Video getVideoMetadata(String id) {
-        return videoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Video not found"));
-    }
-
-    public List<Video> getAllVideos() {
-        return videoRepository.findAll();
+    // Constructor Injection
+    public VideoService(MinioService minioService,
+                        VideoTranscodingService videoTranscodingService,
+                        VideoRepository videoRepository) {
+        this.minioService = minioService;
+        this.videoTranscodingService = videoTranscodingService;
+        this.videoRepository = videoRepository;
     }
 
     public void uploadVideo(MultipartFile file) throws IOException, InterruptedException {
-        // 1. Save MultipartFile to a local temp file
-        File tempSource = File.createTempFile("upload_", ".mp4");
+        // 1. Setup paths
+        Path tempSourcePath = Files.createTempFile("upload_", ".mp4");
+        File tempSource = tempSourcePath.toFile();
         file.transferTo(tempSource);
 
-        // 2. Create a temp directory for the HLS output
         String videoId = UUID.randomUUID().toString();
         String tempOutputDir = System.getProperty("java.io.tmpdir") + "/" + videoId;
+        new File(tempOutputDir).mkdirs();
 
-        // 3. Run FFmpeg (This might take time!)
+        // 2. Transcode
         System.out.println("Starting Transcoding for: " + videoId);
         videoTranscodingService.transcodeToHls(tempSource, tempOutputDir);
-        System.out.println("Transcoding complete for " + videoId);
 
-        // 4. Upload ALL generate files to MinIO
+        // 3. Upload to MinIO
         File outputDir = new File(tempOutputDir);
-        for (File segmentFile : Objects.requireNonNull(outputDir.listFiles())) {
-            //Key structure: videos/{videoId}/index.m3u8
-            String objectKey = "videos/" + videoId + "/" + segmentFile.getName();
-
-            // Call your existing MinIO upload method here
-            // (You might need to tweak it to accept a File instead of MultipartFile)
-            minioService.uploadFile(objectKey, segmentFile);
+        if (outputDir.exists() && outputDir.isDirectory()) {
+            for (File segmentFile : Objects.requireNonNull(outputDir.listFiles())) {
+                String objectKey = "videos/" + videoId + "/" + segmentFile.getName();
+                minioService.uploadFile(objectKey, segmentFile);
+            }
         }
 
-        // 5. Cleanup temp files
-        tempSource.delete();
+        // 4. SAVE TO DB (The Missing Piece) 💾
+        // Construct the HLS URL (Assuming MinIO is on port 9000)
+        String videoUrl = "http://localhost:9000/videos/videos/" + videoId + "/index.m3u8";
 
+        // Create the object using the Constructor (matching the fields we have)
+        Video video = new Video(
+                videoId,
+                file.getOriginalFilename(),
+                videoUrl,
+                file.getContentType(),
+                java.time.LocalDateTime.now() // Set the current time
+        );
+
+        // You can set default values for the empty fields if you want:
+        video.setDescription("Uploaded via StreamGambia");
+        video.setGenre("Uncategorized");
+
+        videoRepository.save(video);
+        System.out.println("Saved Video Metadata: " + video.getTitle());
+
+        // 5. Cleanup
+        tempSource.delete();
+    }
+
+    // NEW: Method to get list of videos
+    public List<Video> getAllVideos() {
+        return videoRepository.findAll();
     }
 }

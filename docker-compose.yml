@@ -68,18 +68,20 @@ services:
   # 2. THE SECURITY GUARD (Auth Service)
   # ... inside services:
   auth-service:
-    image: jeromejoof/sg-auth:latest
+    # image: jeromejoof/sg-auth:latest  <-- COMMENT THIS OUT (It pulls old code)
+    build:
+      context: ./auth-service            # <-- ADD THIS (Builds your local code)
+      dockerfile: Dockerfile
     container_name: sg-auth
+    platform: linux/amd64                # Keep this for your Mac M1/M2
     ports:
       - "8081:8081"
     environment:
-      # Force the URL using the exact property name
       eureka.client.serviceUrl.defaultZone: http://service-registry:8761/eureka/
-
-      # Database settings
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/streamgambia_db
       SPRING_DATASOURCE_USERNAME: admin
       SPRING_DATASOURCE_PASSWORD: password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update # Ensure DB updates with new columns
     depends_on:
       - service-registry
       - postgres

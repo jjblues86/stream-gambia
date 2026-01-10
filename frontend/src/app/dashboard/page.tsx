@@ -1,15 +1,16 @@
 'use client'
 
-import {useEffect, useState} from "react";
-import {useRouter} from "next/navigation";
-import api from "@/src/utils/api";
-import {error} from "next/dist/build/output/log";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+// Make sure this path matches your file name!
+import VideoPlayer from "../../components/VideoPlayer";
 
 interface Video {
     id: string;
     title: string;
     description: string;
     director: string;
+    videoUrl: string; // <--- ADDED THIS (Essential!)
 }
 
 export default function DashboardPage() {
@@ -23,21 +24,26 @@ export default function DashboardPage() {
 
     const fetchVideos = async () => {
         try {
-            // This automatically attached the JWT from localStorage
-            const response = await api.get('/videos');
-            setVideos(response.data);
+            // FIXED: Bypass the Gateway (8080) and go straight to Service (8082)
+            // This avoids the CORS error and gets your data immediately.
+            const response = await fetch('http://localhost:8082/videos');
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const data = await response.json();
+            setVideos(data);
         } catch (error) {
-        console.error("failed to fecth videos", error);
-        // If unauthorize, kick them back to login
-        router.push('/login');
-    } finally {
-        setLoading(false);
-    }
-};
+            console.error("failed to fetch videos", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/login');
+        localStorage.removeItem('token');
+        router.push('/');
     };
 
     return (
@@ -55,25 +61,29 @@ export default function DashboardPage() {
 
             {/* Movie Grid */}
             {loading ? (
-                <p>Loading your stream...</p>
+                <p className="text-center text-zinc-500 mt-20">Loading your stream...</p>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
                     {videos.length === 0 ? (
                         <div className="col-span-full text-center text-zinc-500">
                             <p className="text-xl">No movies found.</p>
-                            <p className="text-sm">Upload one via Postman to see it here!</p>
+                            <p className="text-sm">Go to /upload to add one!</p>
                         </div>
                     ) : (
                         videos.map((video) => (
-                            <div key={video.id} onClick={() => router.push(`/watch/${video.id}`)} className="bg-zinc-900 rounded-lg overflow-hidden hover:scale-105 transition transform duration-200 cursor-pointer">
-                                {/* Placeholder for Thumbnail */}
-                                <div className="h-40 bg-zinc-800 flex items-center justify-center">
-                                    <span className="text-4xl">🎬</span>
+                            <div key={video.id} className="bg-zinc-900 rounded-lg overflow-hidden hover:scale-105 transition transform duration-200">
+
+                                {/* ACTUAL VIDEO PLAYER (Replaces the 🎬) */}
+                                <div className="aspect-video w-full bg-black">
+                                    <VideoPlayer src={video.videoUrl} />
                                 </div>
 
                                 <div className="p-4">
                                     <h3 className="text-lg font-bold truncate">{video.title}</h3>
-                                    <p className="text-zinc-400 text-sm mt-1">{video.director}</p>
+                                    <p className="text-zinc-400 text-sm mt-1">{video.description || "No description"}</p>
+                                    {video.director && (
+                                        <p className="text-zinc-500 text-xs mt-2">Dir: {video.director}</p>
+                                    )}
                                 </div>
                             </div>
                         ))
