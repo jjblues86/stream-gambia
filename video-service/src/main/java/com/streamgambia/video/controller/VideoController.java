@@ -38,4 +38,9 @@ public class VideoController {
     public List<Video> getAllVideos() {
         return videoService.getAllVideos();
     }
+
+    @GetMapping("/{id}")
+    public Video getVideoById(@PathVariable String id) {
+        return videoService.getVideoById(id);
+    }
 }

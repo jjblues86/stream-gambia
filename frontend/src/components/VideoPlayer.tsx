@@ -26,11 +26,13 @@ export default function VideoPlayer({ src, poster }: VideoPlayerProps) {
   }, [src]);
 
   return (
-    <video
-      ref={videoRef}
-      controls
-      className="w-full h-auto rounded-lg shadow-lg"
-      poster={poster || "https://via.placeholder.com/640x360.png?text=Video"}
-    />
+ // inside VideoPlayer.tsx
+ <video
+     controls
+     className="w-full h-full"
+     // poster="https://via.placeholder.com/..."  <--- DELETE THIS LINE
+ >
+     <source src={src} type="application/x-mpegURL" />
+ </video>
   );
 }
