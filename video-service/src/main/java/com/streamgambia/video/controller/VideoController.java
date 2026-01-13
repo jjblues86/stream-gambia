@@ -11,6 +11,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/videos")
+//@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:3001")
 public class VideoController {
 
     private final VideoService videoService;
@@ -40,7 +42,7 @@ public class VideoController {
     }
 
     @GetMapping("/{id}")
-    public Video getVideoById(@PathVariable String id) {
+    public Video getVideoById(@PathVariable("id") String id) {
         return videoService.getVideoById(id);
     }
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation"; // <--- Standard Hook
-import VideoPlayer from "@/src/components/VideoPlayer";
+import { useRouter } from "next/navigation";
 
+// Define what a "Video" looks like
 interface Video {
   id: string;
   title: string;
@@ -12,64 +12,53 @@ interface Video {
   videoUrl: string;
 }
 
-export default function WatchPage() {
-  const { id } = useParams(); // <--- This is the safe way to get ID
+export default function Dashboard() {
+  const [videos, setVideos] = useState<Video[]>([]);
   const router = useRouter();
-  const [video, setVideo] = useState<Video | null>(null);
-  const [loading, setLoading] = useState(true);
 
+  // Load all videos when the page opens
   useEffect(() => {
-    // Wait until ID is ready
-    if (!id) return;
-
-    fetch(`http://localhost:8082/videos/${id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Video not found");
-        return res.json();
-      })
-      .then((data) => {
-        setVideo(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching video:", err);
-        setLoading(false);
-      });
-  }, [id]);
-
-  if (loading) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Loading Theater...</div>;
-  if (!video) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Video not found.</div>;
+    fetch("http://localhost:8082/videos") // Calls Backend Port 8082
+      .then((res) => res.json())
+      .then((data) => setVideos(data))
+      .catch((err) => console.error("Error fetching videos:", err));
+  }, []);
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <nav className="p-4 flex items-center border-b border-zinc-800 bg-zinc-900">
+    <main className="min-h-screen bg-black text-white p-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-red-600">StreamGambia</h1>
         <button
-          onClick={() => router.back()}
-          className="text-zinc-400 hover:text-white mr-4 transition"
+          onClick={() => router.push("/upload")}
+          className="bg-red-600 px-4 py-2 rounded font-bold hover:bg-red-700 transition"
         >
-          ← Back
+          + Upload Video
         </button>
-        <h1 className="text-xl font-bold text-red-600">StreamGambia</h1>
-      </nav>
+      </div>
 
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="aspect-video w-full bg-black shadow-2xl rounded-lg overflow-hidden border border-zinc-800">
-           {/* Passed the video URL directly to your player */}
-           <VideoPlayer src={video.videoUrl} />
-        </div>
+      {/* Video Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {videos.map((video) => (
+          <div
+            key={video.id}
+            onClick={() => router.push(`/watch/${video.id}`)} // <--- THE FIX: Navigates to /watch/[id]
+            className="bg-zinc-900 rounded-lg overflow-hidden hover:scale-105 transition transform duration-200 cursor-pointer group"
+          >
+            {/* Thumbnail Placeholder */}
+            <div className="aspect-video bg-zinc-800 flex items-center justify-center relative">
+              <span className="text-zinc-600 text-4xl group-hover:text-red-600 transition">
+                ▶
+              </span>
+            </div>
 
-        <div className="mt-6">
-          <h1 className="text-3xl font-bold">{video.title}</h1>
-          <div className="flex items-center text-zinc-400 text-sm mt-2 space-x-4">
-             <span className="bg-zinc-800 px-2 py-1 rounded">HD</span>
-             <span>{video.director ? `Dir: ${video.director}` : "Unknown Director"}</span>
-             <span>•</span>
-             <span className="uppercase text-xs tracking-wider text-zinc-500">{String(video.id).split('-')[0]}</span>
+            {/* Video Info */}
+            <div className="p-4">
+              <h3 className="font-bold text-lg truncate">{video.title}</h3>
+              <p className="text-zinc-400 text-sm mt-1">{video.director || "Unknown Director"}</p>
+            </div>
           </div>
-          <p className="mt-4 text-zinc-300 leading-relaxed max-w-2xl text-lg">
-            {video.description || "No description provided."}
-          </p>
-        </div>
+        ))}
       </div>
     </main>
   );
