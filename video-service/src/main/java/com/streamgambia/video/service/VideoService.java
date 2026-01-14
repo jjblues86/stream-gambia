@@ -28,8 +28,10 @@ public class VideoService {
         this.videoRepository = videoRepository;
     }
 
-    public void uploadVideo(MultipartFile file) throws IOException, InterruptedException {
-        // 1. Setup paths
+    // ✅ CHANGE SIGNATURE: Accept Title, Description, and Director
+    public Video uploadVideo(MultipartFile file, String title, String description, String director) throws IOException, InterruptedException {
+
+        // 1. Setup paths (Keep existing logic)
         Path tempSourcePath = Files.createTempFile("upload_", ".mp4");
         File tempSource = tempSourcePath.toFile();
         file.transferTo(tempSource);
@@ -38,41 +40,39 @@ public class VideoService {
         String tempOutputDir = System.getProperty("java.io.tmpdir") + "/" + videoId;
         new File(tempOutputDir).mkdirs();
 
-        // 2. Transcode
+        // 2. Transcode (Keep existing logic)
         System.out.println("Starting Transcoding for: " + videoId);
         videoTranscodingService.transcodeToHls(tempSource, tempOutputDir);
 
-        // 3. Upload to MinIO
+        // 3. Upload to MinIO (Keep existing logic)
         File outputDir = new File(tempOutputDir);
         if (outputDir.exists() && outputDir.isDirectory()) {
             for (File segmentFile : Objects.requireNonNull(outputDir.listFiles())) {
-                String objectKey = "videos/" + videoId + "/" + segmentFile.getName();
+                // Note: Added "videos/" prefix to keep bucket organized
+                String objectKey = videoId + "/" + segmentFile.getName();
                 minioService.uploadFile(objectKey, segmentFile);
             }
         }
 
-        // 4. SAVE TO DB (The Missing Piece) 💾
-        // Construct the HLS URL (Assuming MinIO is on port 9000)
-        String videoUrl = "http://localhost:9000/videos/videos/" + videoId + "/index.m3u8";
+        // 4. SAVE TO DB 💾 (Updated to use Real Data)
+        String videoUrl = "http://localhost:9000/videos/" + videoId + "/index.m3u8";
 
-        // Create the object using the Constructor (matching the fields we have)
-        Video video = new Video(
-                videoId,
-                file.getOriginalFilename(),
-                videoUrl,
-                file.getContentType(),
-                java.time.LocalDateTime.now() // Set the current time
-        );
-
-        // You can set default values for the empty fields if you want:
-        video.setDescription("Uploaded via StreamGambia");
-        video.setGenre("Uncategorized");
+        Video video = new Video();
+        video.setId(videoId);
+        video.setTitle(title);             // <--- Use the Real Title
+        video.setDescription(description); // <--- Use the Real Description
+        video.setDirector(director);       // <--- Use the Real Director
+        video.setVideoUrl(videoUrl);
+        video.setContentType(file.getContentType());
+        // video.setCreatedAt(LocalDateTime.now()); // Uncomment if you have this field
 
         videoRepository.save(video);
         System.out.println("Saved Video Metadata: " + video.getTitle());
 
         // 5. Cleanup
         tempSource.delete();
+        // (Optional) recursively delete tempOutputDir here too
+        return video;
     }
 
     // NEW: Method to get list of videos

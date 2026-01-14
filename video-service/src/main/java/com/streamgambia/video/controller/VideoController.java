@@ -7,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -21,20 +22,18 @@ public class VideoController {
         this.videoService = videoService;
     }
 
-    // This is the ONLY endpoint we need right now
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    // ✅ CORRECT: Accepts Metadata + File, and maps to the correct URL
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE) // Keeps URL as POST /videos
     @ResponseStatus(HttpStatus.CREATED)
-    public String uploadFile(@RequestParam("file") MultipartFile file) {
-        try {
-            // We only call the method that actually exists
-            videoService.uploadVideo(file);
-            return "Video upload started! Transcoding in progress...";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "Error uploading video: " + e.getMessage();
-        }
+    public Video uploadVideo(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("director") String director
+    ) throws IOException, InterruptedException {
+        // Passes ALL data to the service so it saves to Postgres correctly
+        return videoService.uploadVideo(file, title, description, director);
     }
-
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<Video> getAllVideos() {

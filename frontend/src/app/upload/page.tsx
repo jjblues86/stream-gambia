@@ -1,103 +1,109 @@
-"use client"; // This is a client-side interactive component
+"use client";
 
-import { useState, ChangeEvent, FormEvent } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function UploadPage() {
-  const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
-  const [message, setMessage] = useState("");
+  const router = useRouter();
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-    }
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!file) return;
+    setUploading(true);
+    setError("");
 
-    setStatus("uploading");
-    setMessage("Uploading & Transcoding... (Do not close this tab)");
-
+    const form = e.currentTarget;
     const formData = new FormData();
-    formData.append("file", file);
+
+    // Get the file
+    const fileInput = form.elements.namedItem("videoFile") as HTMLInputElement;
+    if (!fileInput.files || fileInput.files.length === 0) {
+      setError("Please select a video file.");
+      setUploading(false);
+      return;
+    }
+
+    // Add all 4 required fields
+    formData.append("file", fileInput.files[0]);
+    formData.append("title", (form.elements.namedItem("title") as HTMLInputElement).value);
+    formData.append("description", (form.elements.namedItem("description") as HTMLInputElement).value);
+    formData.append("director", (form.elements.namedItem("director") as HTMLInputElement).value);
 
     try {
-      // Use the environment variable we set in Docker
-      const apiUrl = "http://localhost:8082";
+      const res = await fetch("http://localhost:8082/videos", {
+        method: "POST",
+        body: formData,
+      });
 
-// Force it to 8082
-const res = await fetch("http://localhost:8082/videos/upload", {
-    method: 'POST',
-    body: formData,
-    // ... rest of your code
-});
       if (!res.ok) {
-        throw new Error("Upload failed");
+        const errText = await res.text();
+        throw new Error(errText || "Upload failed");
       }
 
-      setStatus("success");
-      setMessage("Success! Video is ready for streaming.");
-    } catch (error) {
-      console.error(error);
-      setStatus("error");
-      setMessage("Something went wrong. Please try again.");
+      // Success! Go to dashboard
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error(err);
+      setError("Upload failed: " + err.message);
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4">
-      <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full border border-gray-700">
-        <h1 className="text-2xl font-bold mb-6 text-center text-red-500">
-          Upload to StreamGambia
-        </h1>
+    <main className="min-h-screen bg-black text-white flex items-center justify-center p-6">
+      <div className="w-full max-w-lg bg-zinc-900 p-8 rounded-lg shadow-xl border border-zinc-800">
+        <h1 className="text-3xl font-bold text-red-600 mb-6 text-center">Upload to StreamGambia</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* File Input */}
-          <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-red-500 transition-colors cursor-pointer">
-            <input
-              type="file"
-              accept="video/*"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-700"
-            />
+        {error && (
+          <div className="bg-red-900/50 text-red-200 p-3 rounded mb-4 text-sm border border-red-800">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Title Input */}
+          <div>
+            <label className="block text-zinc-400 text-sm mb-1">Movie Title</label>
+            <input name="title" required type="text" placeholder="Enter title..." className="w-full bg-black border border-zinc-700 rounded p-3 text-white focus:border-red-600 outline-none" />
           </div>
 
-          {/* Status Message */}
-          {status === "uploading" && (
-            <div className="flex items-center justify-center space-x-2 text-yellow-400">
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-              <span>Processing... (This may take a minute)</span>
-            </div>
-          )}
+          {/* Director Input */}
+          <div>
+            <label className="block text-zinc-400 text-sm mb-1">Director</label>
+            <input name="director" required type="text" placeholder="Director's name..." className="w-full bg-black border border-zinc-700 rounded p-3 text-white focus:border-red-600 outline-none" />
+          </div>
 
-          {status === "success" && (
-            <div className="p-3 bg-green-900/50 text-green-400 rounded text-center">
-              {message}
-            </div>
-          )}
+          {/* Description Input */}
+          <div>
+            <label className="block text-zinc-400 text-sm mb-1">Description</label>
+            <textarea name="description" required rows={3} placeholder="What is this video about?" className="w-full bg-black border border-zinc-700 rounded p-3 text-white focus:border-red-600 outline-none" />
+          </div>
 
-          {status === "error" && (
-            <div className="p-3 bg-red-900/50 text-red-400 rounded text-center">
-              {message}
-            </div>
-          )}
+          {/* File Picker */}
+          <div className="border-2 border-dashed border-zinc-700 rounded-lg p-6 text-center hover:border-red-600 transition cursor-pointer">
+            <input
+              name="videoFile"
+              type="file"
+              accept="video/*"
+              required
+              className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-700 cursor-pointer"
+            />
+          </div>
 
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={!file || status === "uploading"}
-            className={`w-full py-3 px-4 rounded font-bold transition-all ${
-              !file || status === "uploading"
-                ? "bg-gray-600 cursor-not-allowed"
-                : "bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/30"
+            disabled={uploading}
+            className={`w-full py-3 rounded font-bold text-white transition ${
+              uploading ? "bg-zinc-700 cursor-not-allowed" : "bg-red-600 hover:bg-red-700"
             }`}
           >
-            {status === "uploading" ? "Transcoding..." : "Upload Video"}
+            {uploading ? "Uploading..." : "Upload Video"}
           </button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }
