@@ -2,6 +2,7 @@ package com.streamgambia.video.service;
 
 import com.streamgambia.video.entity.Video;
 import com.streamgambia.video.repository.VideoRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
@@ -13,20 +14,13 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class VideoService {
 
     private final MinioService minioService; // Make sure this matches your file name (FileService vs MinioService)
     private final VideoTranscodingService videoTranscodingService;
     private final VideoRepository videoRepository; // <--- NEW: Database connection
 
-    // Constructor Injection
-    public VideoService(MinioService minioService,
-                        VideoTranscodingService videoTranscodingService,
-                        VideoRepository videoRepository) {
-        this.minioService = minioService;
-        this.videoTranscodingService = videoTranscodingService;
-        this.videoRepository = videoRepository;
-    }
 
     // ✅ CHANGE SIGNATURE: Accept Title, Description, and Director
     public Video uploadVideo(MultipartFile file, String title, String description, String director) throws IOException, InterruptedException {
