@@ -4,17 +4,32 @@ server:
 spring:
   application:
     name: video-service
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/streamgambia_video
-      auto-index-creation: true
+
+  # 👇 CHANGED: Removed MongoDB, Added PostgreSQL
+  datasource:
+    # 'video-db' must match the service name in your docker-compose.yml
+    url: jdbc:postgresql://video-db:5432/videodb
+    username: user
+    password: password
+    driver-class-name: org.postgresql.Driver
+
+  # 👇 NEW: JPA / Hibernate Config
+  jpa:
+    hibernate:
+      ddl-auto: update # Automatically creates tables (Watchlist, Video)
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
   servlet:
     multipart:
       max-file-size: 2GB
       max-request-size: 2GB
 
+# Keep MinIO settings for later
 minio:
-  url: http://localhost:9000
+  url: http://minio:9000 # Note: Changed localhost to 'minio' for Docker networking
   access-key: minioadmin
   secret-key: minioadmin
   bucket-name: movies
@@ -22,6 +37,6 @@ minio:
 eureka:
   client:
     service-url:
-      defaultZone: http://127.0.0.1:8761/eureka/
+      defaultZone: http://eureka-server:8761/eureka/ # Changed 127.0.0.1 to service name
   instance:
     prefer-ip-address: true

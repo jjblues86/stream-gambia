@@ -19,6 +19,7 @@ services:
     networks:
       - stream-net
 
+  # Kept just in case you need it later, but Video Service doesn't use it anymore
   mongodb:
     image: mongo:6.0
     container_name: sg-mongo
@@ -66,14 +67,11 @@ services:
       - stream-net
 
   # 2. THE SECURITY GUARD (Auth Service)
-  # ... inside services:
   auth-service:
-    # image: jeromejoof/sg-auth:latest  <-- COMMENT THIS OUT (It pulls old code)
     build:
-      context: ./auth-service            # <-- ADD THIS (Builds your local code)
+      context: ./auth-service
       dockerfile: Dockerfile
     container_name: sg-auth
-    platform: linux/amd64                # Keep this for your Mac M1/M2
     ports:
       - "8081:8081"
     environment:
@@ -81,7 +79,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/streamgambia_db
       SPRING_DATASOURCE_USERNAME: admin
       SPRING_DATASOURCE_PASSWORD: password
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update # Ensure DB updates with new columns
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     depends_on:
       - service-registry
       - postgres
@@ -91,32 +89,34 @@ services:
   # 3. THE CONTENT (Video Service)
   video-service:
     build: ./video-service
-#    image: jeromejoof/sg-video:latest
     container_name: sg-video
     ports:
       - "8082:8082"
     environment:
       eureka.client.serviceUrl.defaultZone: http://service-registry:8761/eureka/
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/videodb
 
-      # --- ADD THESE LINES ---
-      # Tells the app to talk to the "minio" container, not localhost
+      # 👇 CRITICAL FIX: Pointing to Postgres instead of MongoDB
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/streamgambia_db
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+
+      # MinIO Settings
       minio.url: http://minio:9000
       minio.accessKey: minioadmin
       minio.secretKey: minioadmin
-      # -----------------------
 
     depends_on:
       - service-registry
-      - mongodb
-      - minio   # <--- Add this too so MinIO starts first
+      - postgres  # 👈 Changed from mongodb to postgres
+      - minio
     networks:
       - stream-net
 
   # 4. THE FRONT DOOR (API Gateway)
   api-gateway:
     build: ./api-gateway
-#    image: jeromejoof/sg-gateway:latest
     container_name: sg-gateway
     ports:
       - "8080:8080"
@@ -129,15 +129,13 @@ services:
     networks:
       - stream-net
 
-    # 5. THE EXPERIENCE (Frontend)
+  # 5. THE EXPERIENCE (Frontend)
   frontend:
     build: ./frontend
-#    image: jeromejoof/sg-frontend:latest
     container_name: sg-frontend
     ports:
       - "3000:3000"
     environment:
-      # This tells Next.js where the API is (Client-side browser requests)
       NEXT_PUBLIC_API_URL: http://localhost:8080
     depends_on:
       - api-gateway
